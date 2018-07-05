@@ -1,14 +1,12 @@
-setwd("D:/MS Thesis/ThesisData/Collected Data Set")
+#setwd("D:/MS Thesis/ThesisData/Collected Data Set")
 
-data <- read.csv("MasterData.csv", stringsAsFactors = FALSE)
+data <- read.csv("MasterData1.csv", stringsAsFactors = FALSE)
 head(data)
 
 # Since there are only 8 observations in time
 data$Time <- NULL
-
 # Convert into date objects from string dates
 data$Date <- as.Date(data$Date, "%d-%b-%y")
-
 # Since all are male, therefore this variable is not needed
 data$Gender <- NULL
 
@@ -25,57 +23,57 @@ data$Stats <- NULL
 
 file <- data$ECGLink
 ecgdata <- read.csv(file, stringsAsFactors = FALSE)
-head(data)
+head(ecgdata)
 
-#calculation of BMI
+data$BMI <- data$Weight / (data$Height / 100)
+data$BMI
+hist(data$BMI)
 
-#1= Very Severely Under Weight
-#2= Severe Under weight  
-#3=Under weight
-#4=Normal
-#5=Over Weight
-#6=Moderate
-#7=Severely obese
-#8=Very obese
-height1<-data$Height
-Weight1<-data$Weight
-height1
-mheight<- height1/100
-data$BMI<-0
-BMI<-Weight1/mheight
-barplot(BMI)
-BMI
-data$Obese<-NULL
-data$obese<-sapply(data$BMI, function(x) { if(x<15)"Very Severely Under Weight" else if (x>=15 && X<=16)"Severe Under weight " 
-    else if(x>=16.5 & x<18.5)"Under weight" else if (x>=18.5 & x<25)"Normal" else if (x>=25 && x<30)"Over weight" else if (x>=30 && x<35)"Moderate" 
-    else if (x>= 35 & x<40)"Severely Obese" else "Very Obese"})
-dist<-table (data$obese)
-barplot(table(data$obese))
-data$obese
+lookup <- function(value) {
+    category <- "OBESE"
+    if (value < 15)
+        category <- "CRITICAL_UW"
+    else if (value < 16.5)
+        category <- "SEVERE_UW"
+    else if (value < 18.5)
+        category <- "UW"
+    else if (value < 15)
+        category <- "NORMAL"
+    else if (value < 30)
+        category <- "OW"
+    else if (value < 35)
+        category <- "MODERATE_OW"
+    category
+}
 
-output1<-data[,c("BMI","obese")]
-write.csv(output1,"obese.csv",sep=",", row.names=FALSE, quote = FALSE)
+data$WeightCategory <- sapply(data$BMI, lookup)
+plot(table(data$WeightCategory))
 
 
-#Calculation for Blood pressure
+output1 <- data[,c("BMI","obese")]
+write.csv(output1, "obese.csv", sep=",", row.names=FALSE, quote = FALSE)
 
 
-data$bpdata<-NULL
-colnames(data)
-data$bpdata<-sapply(data$SystolicBP,data$DiastolicBP,function(x,y){if(x<120 && y<80)"Normal"
-    else if ((x>=120 && X<=139)&& (y>=80 && y<=89))"Pre-hypertension"
-    else if ((x>=140 && X<=159)&& (y>=90 && y<=99))"Hypertension-I"
-    else if (x>=160 && y>=100)"Hypertension-II"
-    else "wrong BP"})
-dist<-table (data$bpdata)
-barplot(table(data$bpdata))
+# Calculation for Blood pressure
+bp_lookup <- function(x, y) {
+    category <- "INVALID"
+    if (x < 120 & y < 80)
+        category <- "NORMAL"
+    else if ((x >= 120 & x < 140) & (y >= 80 & y < 90))
+        category <- "PREHYP"
+    else if ((x >= 140 & x < 160) & (y >= 90 & y < 100))
+        category <- "HYP1"
+    else if ((x >= 160) & (y >= 100))
+        category <- "HYP2"
+    category
+}
 
-output2<-data[,c("SystolicBP","DiastolicBP", "bpdata")]
-write.csv(output2,"bp.csv",sep=",", row.names=FALSE, quote = FALSE)
+# Multi-variable apply
+data$BPCategory <- mapply(bp_lookup, data$SystolicBP, data$DiastolicBP)
+plot(table(data$BPCategory))
 
 
-#for HR
-
+# For Health Rank
 data$HR<-NULL
 data$HR<-sapply (data$Age, function(x){if (x>=18 && x<=25){
     sapply(data$HeartRate, function (y){if (y>=49 && y<=55)"Athlete" 
